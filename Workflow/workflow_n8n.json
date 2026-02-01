@@ -1,0 +1,477 @@
+{
+  "name": "Curso Coder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        0
+      ],
+      "id": "a8748ec6-1efe-48e6-809b-4b56c5b93f5a",
+      "name": "Schedule Trigger",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "940cf82a-73ee-4564-9923-dfc1350c4dad",
+      "name": "API: Coin Gecko.",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ac6bce7-b085-4f62-a691-34561f6bc863",
+              "name": "analisis",
+              "value": "={{ $json.text }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        0
+      ],
+      "id": "43120998-51c7-49bc-b827-6fc8d3de656f",
+      "name": "Edicion de datos"
+    },
+    {
+      "parameters": {
+        "fromEmail": "your_email@example.com",
+        "toEmail": "your_email@example.com",
+        "subject": "={{ $json.analisis.subject }}",
+        "html": "={{ $json.analisis.html_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1712,
+        -320
+      ],
+      "id": "9f779735-6953-45e1-9625-07d49eb63b1a",
+      "name": "Enviar Alerta",
+      "webhookId": "3f39c9e7-7944-4d77-9d65-b13a1092005c",
+      "credentials": {
+        "smtp": {
+          "id": " ",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### ROLE\nYou are a Senior Cryptocurrency Technical Analyst specialized in Price Action and Market Structure. You are concise, mathematical, and objective.\n\n### INPUT DATA\nYou will receive a raw JSON list of Bitcoin prices from the last 24 hours.\nStructure: Array of arrays, where each inner array is `[timestamp, price_usd]`.\nDATA: {{ $('API: Coin Gecko.').item.json.prices }}\n\n\n### TASK\n1. **Identify Key Levels:** Locate the Open (first price), High (max price), Low (min price), and Close (last price) within the dataset.\n2. **Analyze Structure:** Compare the Close price vs the Open price. Check if the Highs are getting lower (downtrend) or Highs are getting higher (uptrend).\n3. **Determine Trend:**\n   - \"ALCISTA\": Close > Open AND creating Higher Highs.\n   - \"BAJISTA\": Close < Open AND creating Lower Lows.\n   - \"LATERAL\": Price is ranging without clear direction or high volatility.\n\n### OUTPUT FORMAT (CRITICAL)\n- Return **ONLY** a single valid JSON object.\n- **DO NOT** use Markdown code blocks (no ```json).\n- **DO NOT** write any introductory or concluding text.\n- The \"razon\" must be in SPANISH and focus on Price Action (e.g., \"Precio rompió máximo anterior\", \"Consolidación en rango\", \"Mínimos descendentes claros\").\n\n### JSON SCHEMA\n{\n  \"tendencia\": \"ALCISTA\" | \"BAJISTA\" | \"LATERAL\",\n  \"razon\": \"Short explanation in Spanish (max 15 words)\",\n  \"precio_actual\": Number (The very last price in the list),\n  \"cambio_24h\": \"Calculated percentage change (Close - Open) / Open * 100 formatted as string with %\"\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        368,
+        0
+      ],
+      "id": "ba6d2a0c-de6b-4b9a-bf63-5cd1766a94b2",
+      "name": "Basic LLM Chain",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        368,
+        192
+      ],
+      "id": "36c383b4-7ca1-4d0f-8963-f289d93b7000",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": " ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### ROLE\nYou are a Senior Financial Analyst for a professional investment firm.\nYour goal is to provide a concise, objective, and data-driven daily report on Bitcoin's market performance for Spanish-speaking clients.\n\n### INPUT DATA\nMARKET METRICS:\n- Trend: {{ $('Edicion de datos').item.json.analisis.tendencia }}\n- Technical Reason: {{ $('Edicion de datos').item.json.analisis.razon }}\n- Current Price: {{ $('Edicion de datos').item.json.analisis.precio_actual }} USD\n- 24h Change: {{ $('Edicion de datos').item.json.analisis.cambio_24h }}\n\n### TASK\nDraft a professional email update based *strictly* on the provided metrics.\n\n### TONE & STYLE GUIDELINES\n1. **Professional & Formal:** Use corporate financial Spanish (e.g., use \"Incremento\" instead of \"Disparo\", \"Corrección\" instead of \"Derrumbe\").\n2. **Objective:** Avoid emotional adjectives (amazing, shocking, massive). Stick to the facts.\n3. **Concise:** Get straight to the point. No fluff.\n4. **No Sensationalism:** Do NOT mention \"All-Time Highs\" unless explicitly provided in the input. Do NOT predict the future.\n\n### LANGUAGE CONSTRAINT\n- **OUTPUT MUST BE IN FORMAL SPANISH.**\n\n### OUTPUT INSTRUCTIONS\nReturn a **SINGLE JSON OBJECT** (no markdown) with two fields:\n1. `subject`: A formal subject line including the Asset (Bitcoin), the Trend, and the % Change.\n   - Format: \"Reporte de Mercado: Bitcoin [TENDENCIA] ([CAMBIO]%)\"\n2. `html_body`: The email content in formal HTML.\n   - Structure the email as a briefing.\n   - Use `<h3>` for section headers (e.g., \"Resumen Técnico\").\n   - Use `<ul>` to list the metrics clearly.\n   - Present the \"Technical Reason\" as the driver of the movement.\n\n### JSON STRUCTURE EXAMPLE\n{\n  \"subject\": \"Reporte Bitcoin: Tendencia ALCISTA (+2.45%)\",\n  \"html_body\": \"<p>Estimado cliente,</p><p>A continuación, presentamos el resumen de actividad de Bitcoin (BTC) para las últimas 24 horas.</p><h3>Datos Clave</h3><ul><li><strong>Precio Actual:</strong> 98,500 USD</li><li><strong>Variación 24h:</strong> +2.45%</li><li><strong>Tendencia Técnica:</strong> Alcista</li></ul><h3>Análisis</h3><p>El movimiento actual está impulsado por: <em>Ruptura de resistencia en 98k</em>.</p>\"\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        1264,
+        -320
+      ],
+      "id": "1f7dd6a5-a063-44cb-b591-45515bb098e6",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -128
+      ],
+      "id": "4b313573-114b-44ab-9344-05d0ba414fda",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": " ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "43cc86c2-6262-4dcb-af41-6be193c1d48c",
+              "leftValue": "={{ $('Edicion de datos').item.json.analisis.tendencia }}",
+              "rightValue": "LATERAL",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "a8591514-6699-4d13-8779-43fe3f146f2b",
+      "name": "¿Tendencia?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4b291611-ae2e-4cfc-a7d3-c0f7b48e6299",
+              "name": "prices_bajista",
+              "value": "[     [1706420000000, 98000],     [1706423600000, 97500],     [1706427200000, 97000],     [1706430800000, 96000],     [1706434400000, 95000],     [1706438000000, 94000],     [1706441600000, 92000],     [1706445200000, 90000],     [1706448800000, 88000],     [1706452400000, 85000]   ]",
+              "type": "array"
+            },
+            {
+              "id": "b12b444e-72bb-423f-92c8-510fb0b83f47",
+              "name": "prices_lateral",
+              "value": "[     [1706420000000, 88400],     [1706423600000, 88600],     [1706427200000, 88900],     [1706430800000, 88450],     [1706434400000, 88550],     [1706438000000, 88350],     [1706441600000, 88200],     [1706445200000, 88400],     [1706448800000, 88000],     [1706452400000, 88800]   ]",
+              "type": "array"
+            },
+            {
+              "id": "5968d7b4-bef7-4282-ac63-b5f869050146",
+              "name": "prices_alcista",
+              "value": "[     [1706420000000, 85000],     [1706423600000, 88000],     [1706427200000, 90000],     [1706430800000, 91000],     [1706434400000, 93000],     [1706438000000, 93500],     [1706441600000, 94500],     [1706445200000, 96000],     [1706448800000, 97500],     [1706452400000, 98000]   ]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "89d54c60-609c-444f-9a5b-e8d1981c8584",
+      "name": "Datos Test"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": " ",
+          "mode": "list",
+          "cachedResultName": "Log_Bitcoin_IA",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha_Hora": "={{ $now.format('dd/MM/yyyy HH:mm') }}",
+            "Precio_BTC": "={{ $json.analisis.precio_actual }}",
+            "Tendencia_Detectada": "={{ $json.analisis.tendencia }}",
+            "Razon_IA": "={{ $json.analisis.razon }}",
+            "Cambio_24": "={{ $json.analisis.cambio_24h }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha_Hora",
+              "displayName": "Fecha_Hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Precio_BTC",
+              "displayName": "Precio_BTC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tendencia_Detectada",
+              "displayName": "Tendencia_Detectada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Razon_IA",
+              "displayName": "Razon_IA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cambio_24",
+              "displayName": "Cambio_24",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        0
+      ],
+      "id": "6fc9ce92-45af-4eaf-9f1c-c4509dcab2fd",
+      "name": "Registro",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": " ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ac6bce7-b085-4f62-a691-34561f6bc863",
+              "name": "analisis",
+              "value": "={{ $json.text }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1552,
+        -320
+      ],
+      "id": "b53c4e8b-4f9e-499f-b14e-1d444411aebe",
+      "name": "Edicion de datos2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "API: Coin Gecko.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API: Coin Gecko.": {
+      "main": [
+        [
+          {
+            "node": "Datos Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edicion de datos": {
+      "main": [
+        [
+          {
+            "node": "Registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edicion de datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Edicion de datos2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tendencia?": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos Test": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro": {
+      "main": [
+        [
+          {
+            "node": "¿Tendencia?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edicion de datos2": {
+      "main": [
+        [
+          {
+            "node": "Enviar Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "0b1b4c2b-2847-4411-902f-005803e2ab5d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "baf1b15d3f027aa22428395a3df944be0113444cc02b52df428692d49955eb5e"
+  },
+  "id": "JR4GBrpe724umUjy",
+  "tags": []
+}
