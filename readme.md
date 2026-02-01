@@ -6,9 +6,26 @@
 
 Este proyecto implementa un **flujo automatizado en n8n** que analiza el comportamiento del precio de **Bitcoin** en las últimas 24 horas utilizando **Price Action**, genera un **reporte técnico con IA**, lo registra en **Google Sheets** y envía una **alerta por email** cuando se detecta una tendencia relevante.
 
-## Descripción del Proyecto
+---
 
-El objetivo es eliminar el monitoreo manual de precios. El bot consulta el precio de Bitcoin, se lo envía a un LLM (Modelo de Lenguaje) con un rol de "Analista Experto" para que determine la tendencia e informe mediante un email un cambio de tendencia.
+## Estructura del Repositorio
+
+El proyecto se organiza de la siguiente manera para facilitar su despliegue y revisión:
+
+```text
+├── README.md                    # Documentación técnica y funcional
+├── workflow/
+│   └── worlflow_n8n.json        # Archivo fuente para importar en n8n
+├── prompts/
+│   ├── analista_prompt          # Archivo txt con el prompt que utiliza el primer nodo
+│   └── redactor_prompt          # Archivo txt con el prompt que utiliza el segundo nodo
+└── evidencia/
+    ├── n8n_workflow.png         # Captura de la arquitectura del flujo
+    ├── sheets_log.png           # Captura del log de auditoría en Sheets
+    ├── email_bajista.png        # Captura de pantalla del email enviado en una tendencia bajista
+    └── email_alcista.png        # Captura de pantalla del email enviado en una tendencia alcista
+```
+---
 
 ## Funcionalidades principales
 
@@ -85,25 +102,6 @@ Esto permite validar el comportamiento del flujo sin depender de la API externa.
 
 ---
 
-## Estructura del Repositorio
-
-El proyecto se organiza de la siguiente manera para facilitar su despliegue y revisión:
-
-```text
-├── README.md                    # Documentación técnica y funcional
-├── workflow/
-│   └── worlflow_n8n.json        # Archivo fuente para importar en n8n
-├── prompts/
-│   ├── analista_prompt          # Archivo txt con el prompt que utiliza el primer nodo
-│   └── redactor_prompt          # Archivo txt con el prompt que utiliza el segundo nodo
-└── evidencia/
-    ├── n8n_workflow.png         # Captura de la arquitectura del flujo
-    ├── sheets_log.png           # Captura del log de auditoría en Sheets
-    ├── email_bajista.png        # Captura de pantalla del email enviado en una tendencia bajista
-    └── email_alcista.png        # Captura de pantalla del email enviado en una tendencia alcista
-```
----
-
 ## Evidencias de Funcionamiento
 
 A continuación se presentan las pruebas de ejecución exitosa del sistema.
@@ -111,14 +109,14 @@ A continuación se presentan las pruebas de ejecución exitosa del sistema.
 ### 1. Vista General del Workflow
 Arquitectura completa de nodos en n8n, mostrando las conexiones y la lógica condicional.
 
-![Workflow Completo](./evidencia/n8n_workflow.png)
+![Workflow Completo](Evidencia/n8n_workflow.png)
 
 ### 2. Log de Auditoría (Google Sheets)
 Prueba de persistencia de datos. Se observa cómo el bot escribe la fecha, el precio detectado, el razonamiento de la IA y el porcentaje de cambio de las ultimas 24 HS.
 
-![Log en Google Sheets](./evidencia/sheets_log.png)
+![Log en Google Sheets](Evidencia/sheets_log.png)
 
-*(Nota: El resto de imágenes se encuentran en la carpeta `/evidencia` de este repositorio).*
+*(Nota: El resto de imágenes se encuentran en la carpeta `/Evidencia` de este repositorio).*
 
 ---
 
@@ -128,14 +126,14 @@ Este proyecto se diferencia por implementar **estándares de seguridad empresari
 
 * **No se utilizan Service Accounts inseguras.**
 * Se implementó **OAuth 2.0** a través de Google Cloud Console.
-* El bot tiene permisos de "Mínimo Privilegio" (Scope): solo puede editar las hojas de cálculo creadas por la aplicación, sin acceso al correo personal ni al resto del Drive del usuario.
+* El bot tiene permisos de `Mínimo Privilegio`: solo puede editar las hojas de cálculo creadas por la aplicación, sin acceso al correo personal ni al resto del Drive del usuario.
 
 ---
 
 ## Cómo ejecutar este proyecto
 
 1.  Tener una instancia de **n8n** instalada (Desktop o Cloud).
-2.  Importar el archivo `workflow/Workflow_Bitcoin_AI.json` incluido en este repositorio.
+2.  Importar el archivo `workflow_n8n.json` incluido en este repositorio.
 3.  Configurar las credenciales en n8n:
     * **Google Gemini:** Crear API Key en Google AI Studio.
     * **Google Sheets:** Configurar credencial OAuth2 en Google Cloud Console.
@@ -159,9 +157,10 @@ En ningún caso los autores o titulares de los derechos serán responsables por 
 
 **Desarrollado por Franco Valentin Guerrero**
 
-* 🚀 **Especialidad:** Data Science & Automatización de Procesos.
+* 🚀 **Especialidad:** Ciencia de Datos & Automatización de Procesos.
 * 🐙 **GitHub:** [Ver perfil](https://github.com/franvg99)
 * 💼 **LinkedIn:** [Ver perfil](https://linkedin.com/in/fguerrero99)
 
 ---
-*Este proyecto forma parte de una entrega para la carrera de AI Automation en **CODERHOUSE**.*
+
+*Este proyecto forma parte de una entrega para la carrera de AI Automation en **Coderhouse**.*
